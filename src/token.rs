@@ -4,9 +4,8 @@ pub enum Token {
     Eof,
 
     // Identifiers, Literals
-    Ident(String),
+    Identifier(String),
     Int(i64),
-    Boolean(bool),
     String(String),
 
     // Operators
@@ -28,10 +27,10 @@ pub enum Token {
     // Delimiters
     Comma,
     Semicolon,
-    Lparen,
-    Rparen,
-    Lbrace,
-    Rbrace,
+    LParen,
+    RParen,
+    LBrace,
+    RBrace,
 
     // Keywords
     Func,
@@ -54,7 +53,7 @@ impl Token {
             "if" => Token::If,
             "else" => Token::Else,
             "return" => Token::Return,
-            _ => Token::Ident(identifier.to_string())
+            _ => Token::Identifier(identifier.to_string())
         }
     }
 }

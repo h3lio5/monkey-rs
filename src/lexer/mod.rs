@@ -21,7 +21,6 @@ impl<'a> Lexer<'a> {
     }
 
     pub fn next_token(&mut self) -> Token {
-
         self.skip_whitespace();
 
         let ch = self.cursor.next().unwrap_or('\0');
@@ -43,8 +42,8 @@ impl<'a> Lexer<'a> {
             c if c.is_ascii_digit() => self.read_number(c, 1),
             c if c.is_ascii_alphabetic() || c == '_' => self.read_identifier(c),
             '\0' => Token::Eof,
-            _ => Token::Illegal
-            };
+            _ => Token::Illegal,
+        };
 
         token
     }
@@ -75,14 +74,16 @@ impl<'a> Lexer<'a> {
             self.cursor.next();
         }
 
-        let n = number.parse::<i64>().expect(format!("Error parsing {} into i64 type", number).as_str());
-        Token::Int(sign * n) 
+        let n = number
+            .parse::<i64>()
+            .expect(format!("Error parsing {} into i64 type", number).as_str());
+        Token::Int(sign * n)
     }
 
     fn handle_minus_or_negative_number(&mut self) -> Token {
         match self.cursor.peek() {
             Some(&ch) if ch.is_ascii_digit() => {
-                let first_digit = self.cursor.next().unwrap(); 
+                let first_digit = self.cursor.next().unwrap();
                 self.read_number(first_digit, -1)
             }
             _ => Token::Minus,
@@ -102,6 +103,4 @@ impl<'a> Lexer<'a> {
 
         Token::get_keyword_or_identifier(&identifier)
     }
-
 }
-

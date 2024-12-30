@@ -6,7 +6,7 @@ pub type Program = Vec<Statement>;
 pub enum Statement {
     Let(LetStatement),
     Return(ReturnStatement),
-    Expression(Expression)
+    Expression(Expression),
 }
 
 #[derive(Debug, Clone)]
@@ -25,7 +25,7 @@ pub struct ReturnStatement {
 #[derive(Debug, Clone)]
 pub struct ExpressionStatement {
     token: Token,
-    value: Expression
+    value: Expression,
 }
 
 #[derive(Debug, Clone)]
@@ -43,7 +43,7 @@ pub enum Expression {
 #[derive(Debug, Clone)]
 pub struct PrefixExpression {
     token: Token,
-    right: Box<Expression>
+    right: Box<Expression>,
 }
 
 #[derive(Debug, Clone)]
@@ -58,25 +58,25 @@ pub struct IfExpression {
     token: Token,
     condition: Box<Expression>,
     consequence: BlockStatement,
-    alternative: Option<BlockStatement>
+    alternative: Option<BlockStatement>,
 }
 
 #[derive(Debug, Clone)]
 pub struct BlockStatement {
     token: Token, // the { token
-    statements: Vec<Statement>
+    statements: Vec<Statement>,
 }
 
 #[derive(Debug, Clone)]
 pub struct FuncLiteral {
-    token: Token, // the fn token
+    token: Token,           // the fn token
     parameters: Vec<Token>, // Token::Ident("<name>")
-    body: BlockStatement
+    body: BlockStatement,
 }
 
 #[derive(Debug, Clone)]
 pub struct CallExpression {
-    token: Token, // the ( token
+    token: Token,              // the ( token
     function: Box<Expression>, // Identifier or FunctionLiteral
     arguments: Vec<Expression>,
 }

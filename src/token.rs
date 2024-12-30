@@ -39,12 +39,11 @@ pub enum Token {
     False,
     If,
     Else,
-    Return
+    Return,
 }
 
 impl Token {
     pub fn get_keyword_or_identifier(identifier: &str) -> Token {
-
         match identifier {
             "fn" => Token::Func,
             "let" => Token::Let,
@@ -53,7 +52,7 @@ impl Token {
             "if" => Token::If,
             "else" => Token::Else,
             "return" => Token::Return,
-            _ => Token::Identifier(identifier.to_string())
+            _ => Token::Identifier(identifier.to_string()),
         }
     }
 }

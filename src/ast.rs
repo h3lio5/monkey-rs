@@ -6,7 +6,7 @@ pub type Program = Vec<Statement>;
 pub enum Statement {
     Let(LetStatement),
     Return(ReturnStatement),
-    Expression(Expression),
+    Expression(ExpressionStatement),
 }
 
 #[derive(Debug, Clone)]
@@ -18,14 +18,14 @@ pub struct LetStatement {
 
 #[derive(Debug, Clone)]
 pub struct ReturnStatement {
-    token: Token,
-    value: Expression,
+    pub token: Token,
+    pub value: Expression,
 }
 
 #[derive(Debug, Clone)]
 pub struct ExpressionStatement {
-    token: Token,
-    value: Expression,
+    pub token: Token,
+    pub value: Expression,
 }
 
 #[derive(Debug, Clone)]
@@ -42,41 +42,41 @@ pub enum Expression {
 
 #[derive(Debug, Clone)]
 pub struct PrefixExpression {
-    token: Token,
-    right: Box<Expression>,
+    pub operator: Token,
+    pub right: Box<Expression>,
 }
 
 #[derive(Debug, Clone)]
 pub struct InfixExpression {
-    token: Token,
-    left: Box<Expression>,
-    right: Box<Expression>,
+    pub operator: Token,
+    pub left: Box<Expression>,
+    pub right: Box<Expression>,
 }
 
 #[derive(Debug, Clone)]
 pub struct IfExpression {
-    token: Token,
-    condition: Box<Expression>,
-    consequence: BlockStatement,
-    alternative: Option<BlockStatement>,
+    pub token: Token,
+    pub condition: Box<Expression>,
+    pub consequence: BlockStatement,
+    pub alternative: Option<BlockStatement>,
 }
 
 #[derive(Debug, Clone)]
 pub struct BlockStatement {
-    token: Token, // the { token
-    statements: Vec<Statement>,
+    pub token: Token, // the { token
+    pub statements: Vec<Statement>,
 }
 
 #[derive(Debug, Clone)]
 pub struct FuncLiteral {
-    token: Token,           // the fn token
-    parameters: Vec<Token>, // Token::Ident("<name>")
-    body: BlockStatement,
+    pub token: Token,           // the fn token
+    pub parameters: Vec<Token>, // Token::Ident("<name>")
+    pub body: BlockStatement,
 }
 
 #[derive(Debug, Clone)]
 pub struct CallExpression {
-    token: Token,              // the ( token
-    function: Box<Expression>, // Identifier or FunctionLiteral
-    arguments: Vec<Expression>,
+    pub token: Token,              // the ( token
+    pub function: Box<Expression>, // Identifier or FunctionLiteral
+    pub arguments: Vec<Expression>,
 }

@@ -45,12 +45,16 @@ impl<'a> Parser<'a> {
         self.peek_token = self.lexer.next_token();
     }
 
-    pub fn parse_program(&mut self) -> Program {
-        let mut program: Program;
+    pub fn parse_program(&mut self) -> Result<Program, errors::ParseError> {
+        let mut program = Program::new();
 
-        while !self.is_current_token(Token::Eof) {}
+        while !self.is_current_token(Token::Eof) {
+            let statement = self.parse_statement()?;
+            program.push(statement);
+            self.advance();
+        }
 
-        todo!()
+        Ok(program)
     }
 
     fn parse_statement(&mut self) -> Result<Statement, errors::ParseError> {
@@ -137,11 +141,17 @@ impl<'a> Parser<'a> {
         };
 
         while !self.is_peek_token(Token::Semicolon) && precedence < self.peek_token_precedence() {
-            if !self.has_infix_parse_function(&self.peek_token) {
-                return Ok(left);
-            }
-            self.advance();
-            left = self.parse_infix_expression(left)?;
+            match self.has_infix_parse_function(&self.peek_token) {
+                InfixType::Regular => {
+                    self.advance();
+                    left = self.parse_infix_expression(left)?;
+                }
+                InfixType::Call => {
+                    self.advance();
+                    left = self.parse_call_expression(left)?;
+                }
+                InfixType::Noop => return Ok(left)
+            }  
         }
         return Ok(left);
     }
@@ -242,6 +252,36 @@ impl<'a> Parser<'a> {
 
         let block_statement = BlockStatement { token, statements };
         Ok(block_statement)
+    }
+
+    fn parse_call_expression(&mut self, function: Expression) -> Result<Expression, ParseError> {
+        let token = self.current_token.clone();
+        let arguments = self.parse_call_arguments()?;
+        let call_expression = Expression::Call(CallExpression {token, function: Box::new(function), arguments});
+        Ok(call_expression)
+    }
+
+    fn parse_call_arguments(&mut self) -> Result<Vec<Expression>, ParseError> {
+        let mut arguments = Vec::new();
+        if self.is_peek_token(Token::RParen) {
+            self.advance();
+            return Ok(arguments);
+        }
+        self.advance();
+        let mut expr = self.parse_expression(Precedence::Lowest)?;
+        arguments.push(expr);
+        while self.is_peek_token(Token::Comma) {
+            self.advance();
+            self.advance();
+            expr = self.parse_expression(Precedence::Lowest)?;
+            arguments.push(expr);
+        }
+        
+        if self.expect_peek(Token::RParen) {
+            self.raise_token_mismatch_error(Token::RParen, self.peek_token.clone())?
+        }
+
+        Ok(arguments)
     }
 
     fn parse_grouped_expression(&mut self) -> Result<Expression, ParseError> {
@@ -347,20 +387,20 @@ impl<'a> Parser<'a> {
     }
 
     #[inline]
-    fn has_infix_parse_function(&self, token: &Token) -> bool {
-        matches!(
-            token,
+    fn has_infix_parse_function(&self, token: &Token) -> InfixType {
+        match token {
             Token::Plus
-                | Token::Minus
-                | Token::Slash
-                | Token::Asterisk
-                | Token::Equal
-                | Token::NotEqual
-                | Token::GreaterThan
-                | Token::GreaterThanEqual
-                | Token::LessThan
-                | Token::LessThanEqual
-                | Token::LParen
-        )
+            | Token::Minus
+            | Token::Slash
+            | Token::Asterisk
+            | Token::Equal
+            | Token::NotEqual
+            | Token::GreaterThan
+            | Token::GreaterThanEqual
+            | Token::LessThan
+            | Token::LessThanEqual => InfixType::Regular,
+            Token::LParen => InfixType::Call,
+            _ => InfixType::Noop,
+        }
     }
 }

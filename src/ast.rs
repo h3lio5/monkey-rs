@@ -80,3 +80,10 @@ pub struct CallExpression {
     pub function: Box<Expression>, // Identifier or FunctionLiteral
     pub arguments: Vec<Expression>,
 }
+
+#[derive(Debug, Clone)]
+pub enum InfixType {
+    Regular,
+    Call,
+    Noop,
+}

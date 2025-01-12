@@ -87,3 +87,6 @@ pub enum InfixType {
     Call,
     Noop,
 }
+
+#[derive(Debug, Clone)]
+pub struct Identifier(String);

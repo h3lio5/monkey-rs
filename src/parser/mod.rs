@@ -1,5 +1,3 @@
-use std::process::id;
-
 use super::ast::*;
 use super::lexer::Lexer;
 use super::token::Token;
@@ -69,19 +67,14 @@ impl<'a> Parser<'a> {
         let token = Token::Let;
 
         if !self.expect_peek(Token::Identifier("".to_string())) {
-            return Err(ParseError::MismatchedToken {
-                expected: Token::Identifier("(..)".to_string()),
-                found: self.peek_token.clone(),
-            });
+            self.raise_peek_token_mismatch_error(
+                Token::Identifier(String::from("(..)")))?
         }
 
         let name = self.current_token.clone();
 
         if !self.expect_peek(Token::Assign) {
-            return Err(ParseError::MismatchedToken {
-                expected: Token::Assign,
-                found: self.peek_token.clone(),
-            });
+            self.raise_peek_token_mismatch_error(Token::Assign)?
         }
 
         self.advance();
@@ -89,10 +82,7 @@ impl<'a> Parser<'a> {
         let value = self.parse_expression(Precedence::Lowest)?;
 
         if !self.expect_peek(Token::Semicolon) {
-            return Err(ParseError::MismatchedToken {
-                expected: Token::Semicolon,
-                found: self.peek_token.clone(),
-            });
+            self.raise_peek_token_mismatch_error(Token::Semicolon)?
         }
 
         let let_statement = LetStatement { token, name, value };
@@ -106,7 +96,7 @@ impl<'a> Parser<'a> {
 
         let value = self.parse_expression(Precedence::Lowest)?;
         if !self.expect_peek(Token::Semicolon) {
-            self.raise_token_mismatch_error(Token::Semicolon, self.peek_token.clone())?
+            self.raise_peek_token_mismatch_error(Token::Semicolon)?
         }
         Ok(Statement::Return(ReturnStatement { token, value }))
     }
@@ -150,8 +140,8 @@ impl<'a> Parser<'a> {
                     self.advance();
                     left = self.parse_call_expression(left)?;
                 }
-                InfixType::Noop => return Ok(left)
-            }  
+                InfixType::Noop => return Ok(left),
+            }
         }
         return Ok(left);
     }
@@ -195,13 +185,13 @@ impl<'a> Parser<'a> {
         let token = self.current_token.clone();
 
         if !self.expect_peek(Token::LParen) {
-            self.raise_token_mismatch_error(Token::LParen, self.peek_token.clone())?
+            self.raise_peek_token_mismatch_error(Token::LParen)?
         }
 
         let parameters = self.parse_function_parameters()?;
 
         if !self.expect_peek(Token::LBrace) {
-            self.raise_token_mismatch_error(Token::LBrace, self.peek_token.clone())?
+            self.raise_peek_token_mismatch_error(Token::LBrace)?
         }
 
         let body = self.parse_block_statement()?;
@@ -232,7 +222,7 @@ impl<'a> Parser<'a> {
         }
 
         if !self.expect_peek(Token::RParen) {
-            self.raise_token_mismatch_error(Token::RParen, self.peek_token.clone())?
+            self.raise_peek_token_mismatch_error(Token::RParen)?
         }
 
         Ok(identifiers)
@@ -257,7 +247,11 @@ impl<'a> Parser<'a> {
     fn parse_call_expression(&mut self, function: Expression) -> Result<Expression, ParseError> {
         let token = self.current_token.clone();
         let arguments = self.parse_call_arguments()?;
-        let call_expression = Expression::Call(CallExpression {token, function: Box::new(function), arguments});
+        let call_expression = Expression::Call(CallExpression {
+            token,
+            function: Box::new(function),
+            arguments,
+        });
         Ok(call_expression)
     }
 
@@ -276,9 +270,9 @@ impl<'a> Parser<'a> {
             expr = self.parse_expression(Precedence::Lowest)?;
             arguments.push(expr);
         }
-        
+
         if self.expect_peek(Token::RParen) {
-            self.raise_token_mismatch_error(Token::RParen, self.peek_token.clone())?
+            self.raise_peek_token_mismatch_error(Token::RParen)?
         }
 
         Ok(arguments)
@@ -288,7 +282,7 @@ impl<'a> Parser<'a> {
         self.advance();
         let expression = self.parse_expression(Precedence::Lowest)?;
         if !self.expect_peek(Token::RParen) {
-            self.raise_token_mismatch_error(Token::RParen, self.peek_token.clone())?
+            self.raise_peek_token_mismatch_error(Token::RParen)?
         }
         Ok(expression)
     }
@@ -296,16 +290,16 @@ impl<'a> Parser<'a> {
     fn parse_if_expression(&mut self) -> Result<Expression, ParseError> {
         let token = self.current_token.clone();
         if !self.expect_peek(Token::LParen) {
-            self.raise_token_mismatch_error(Token::LParen, self.peek_token.clone())?
+            self.raise_peek_token_mismatch_error(Token::LParen)?
         }
         self.advance();
 
         let condition = self.parse_expression(Precedence::Lowest)?;
         if !self.expect_peek(Token::RParen) {
-            self.raise_token_mismatch_error(Token::RParen, self.peek_token.clone())?
+            self.raise_peek_token_mismatch_error(Token::RParen)?
         }
         if !self.expect_peek(Token::LBrace) {
-            self.raise_token_mismatch_error(Token::RBrace, self.peek_token.clone())?
+            self.raise_peek_token_mismatch_error(Token::RBrace)?
         }
         let consequence = self.parse_block_statement()?;
         let mut alternative = None;
@@ -313,7 +307,7 @@ impl<'a> Parser<'a> {
         if self.is_peek_token(Token::Else) {
             self.advance();
             if !self.expect_peek(Token::LBrace) {
-                self.raise_token_mismatch_error(Token::LBrace, self.peek_token.clone())?
+                self.raise_peek_token_mismatch_error(Token::LBrace)?
             }
             alternative = Some(self.parse_block_statement()?);
         }
@@ -354,6 +348,12 @@ impl<'a> Parser<'a> {
         }
     }
 
+    #[inline]
+    fn raise_peek_token_mismatch_error(&self, expected: Token) -> Result<(), ParseError> {
+        self.raise_token_mismatch_error(expected, self.peek_token.clone())
+    }
+
+    #[inline]
     fn raise_token_mismatch_error(&self, expected: Token, found: Token) -> Result<(), ParseError> {
         Err(ParseError::MismatchedToken { expected, found })
     }

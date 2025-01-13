@@ -1,7 +1,7 @@
 use std::rc::Rc;
 
-use environment::Environment;
 use crate::ast::{Identifier, Statement};
+use environment::Environment;
 
 pub mod environment;
 mod errors;
@@ -11,13 +11,13 @@ pub enum Object {
     Int(i64),
     Boolean(bool),
     Null,
-    Error(String),
-    Func(FuncObject)
+    Return(Box<Object>),
+    Func(FuncObject),
 }
 
 #[derive(Debug, Clone)]
 pub struct FuncObject {
     parameters: Vec<Identifier>,
     body: Vec<Statement>,
-    env: Rc<Environment>
+    env: Rc<Environment>,
 }

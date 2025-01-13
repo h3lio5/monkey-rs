@@ -1,7 +1,8 @@
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
-use super::{errors::EnvironmentErrors, Object};
+use crate::token::Token;
 
+use super::{errors::EnvironmentErrors, Object};
 
 #[derive(Debug, Clone)]
 pub struct Environment {
@@ -13,14 +14,14 @@ impl Environment {
     pub fn new() -> Self {
         Self {
             store: HashMap::new(),
-            outer: None
+            outer: None,
         }
     }
 
     pub fn new_enclosed(outer: Option<Rc<Environment>>) -> Self {
         Self {
             store: HashMap::new(),
-            outer
+            outer,
         }
     }
 
@@ -39,6 +40,8 @@ impl Environment {
             return outer.get(key);
         }
 
-        Err(EnvironmentErrors::KeyNotFound { key: key.to_owned() })
+        Err(EnvironmentErrors::KeyNotFound {
+            key: key.to_owned(),
+        })
     }
 }

@@ -7,6 +7,7 @@ pub enum Token {
     Identifier(String),
     Int(i64),
     String(String),
+    Boolean(bool),
 
     // Operators
     Assign,
@@ -35,8 +36,6 @@ pub enum Token {
     // Keywords
     Func,
     Let,
-    True,
-    False,
     If,
     Else,
     Return,
@@ -47,8 +46,8 @@ impl Token {
         match identifier {
             "fn" => Token::Func,
             "let" => Token::Let,
-            "true" => Token::True,
-            "false" => Token::False,
+            "true" => Token::Boolean(true),
+            "false" => Token::Boolean(false),
             "if" => Token::If,
             "else" => Token::Else,
             "return" => Token::Return,

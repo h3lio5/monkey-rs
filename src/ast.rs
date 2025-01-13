@@ -12,7 +12,7 @@ pub enum Statement {
 #[derive(Debug, Clone)]
 pub struct LetStatement {
     pub token: Token,
-    pub name: Token,
+    pub name: Token, // Identifier
     pub value: Expression,
 }
 
@@ -30,7 +30,7 @@ pub struct ExpressionStatement {
 
 #[derive(Debug, Clone)]
 pub enum Expression {
-    Literal(Token),
+    IntegerLiteral(Token),
     Identifier(Token),
     Prefix(PrefixExpression),
     Infix(InfixExpression),

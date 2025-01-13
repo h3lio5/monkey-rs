@@ -67,8 +67,7 @@ impl<'a> Parser<'a> {
         let token = Token::Let;
 
         if !self.expect_peek(Token::Identifier("".to_string())) {
-            self.raise_peek_token_mismatch_error(
-                Token::Identifier(String::from("(..)")))?
+            self.raise_peek_token_mismatch_error(Token::Identifier(String::from("(..)")))?
         }
 
         let name = self.current_token.clone();
@@ -117,8 +116,7 @@ impl<'a> Parser<'a> {
         let mut left = match self.current_token {
             Token::Identifier(_) => self.parse_identifier_expression()?,
             Token::Int(_) => self.parse_integer_literal_expression()?,
-            Token::True => self.parse_boolean_literal_expression()?,
-            Token::False => self.parse_boolean_literal_expression()?,
+            Token::Boolean(_) => self.parse_boolean_literal_expression()?,
             Token::If => self.parse_if_expression()?,
             Token::Func => self.parse_function_literal_expression()?,
             Token::Minus | Token::Bang => self.parse_prefix_expression()?,
@@ -148,7 +146,7 @@ impl<'a> Parser<'a> {
 
     fn parse_integer_literal_expression(&self) -> Result<Expression, ParseError> {
         let integer_literal_token = self.current_token.clone();
-        Ok(Expression::Literal(integer_literal_token))
+        Ok(Expression::IntegerLiteral(integer_literal_token))
     }
 
     fn parse_boolean_literal_expression(&self) -> Result<Expression, ParseError> {

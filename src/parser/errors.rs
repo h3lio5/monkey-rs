@@ -2,7 +2,7 @@ use thiserror::Error;
 
 use crate::token::Token;
 
-#[derive(Debug, Error)]
+#[derive(Debug, Error, PartialEq)]
 pub enum ParseError {
     #[error("parsing error")]
     ParseError,

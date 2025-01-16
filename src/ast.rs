@@ -2,33 +2,33 @@ use super::token::Token;
 
 pub type Program = Vec<Statement>;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Statement {
     Let(LetStatement),
     Return(ReturnStatement),
     Expression(ExpressionStatement),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct LetStatement {
     pub token: Token,
     pub name: Token, // Identifier
     pub value: Expression,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct ReturnStatement {
     pub token: Token,
     pub value: Expression,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct ExpressionStatement {
     pub token: Token,
     pub value: Expression,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Expression {
     IntegerLiteral(Token),
     Identifier(Token),
@@ -40,20 +40,20 @@ pub enum Expression {
     Call(CallExpression),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct PrefixExpression {
     pub operator: Token,
     pub right: Box<Expression>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct InfixExpression {
     pub operator: Token,
     pub left: Box<Expression>,
     pub right: Box<Expression>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct IfExpression {
     pub token: Token,
     pub condition: Box<Expression>,
@@ -61,32 +61,29 @@ pub struct IfExpression {
     pub alternative: Option<BlockStatement>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct BlockStatement {
     pub token: Token, // the { token
     pub statements: Vec<Statement>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct FuncLiteral {
     pub token: Token,           // the fn token
     pub parameters: Vec<Token>, // Token::Ident("<name>")
     pub body: BlockStatement,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct CallExpression {
     pub token: Token,              // the ( token
     pub function: Box<Expression>, // Identifier or FunctionLiteral
     pub arguments: Vec<Expression>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum InfixType {
     Regular,
     Call,
     Noop,
 }
-
-#[derive(Debug, Clone)]
-pub struct Identifier(String);

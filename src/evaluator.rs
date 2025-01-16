@@ -7,6 +7,9 @@ use crate::token::Token;
 use super::ast::*;
 use super::object::{environment::Environment, FuncObject, Object};
 
+#[cfg(test)]
+mod test;
+
 #[derive(Debug, Clone)]
 pub struct Evaluator {
     env: Rc<RefCell<Environment>>,
@@ -81,10 +84,11 @@ impl Evaluator {
     }
 
     fn eval_boolean(&self, token: Token) -> Result<Object, String> {
-        let Token::Boolean(value) = token else {
-            unreachable!()
-        };
-        Ok(Object::Boolean(value))
+        match token {
+            Token::True => Ok(Object::Boolean(true)),
+            Token::False => Ok(Object::Boolean(false)),
+            _ => unreachable!(),
+        }
     }
 
     fn eval_integer(&self, token: Token) -> Result<Object, String> {

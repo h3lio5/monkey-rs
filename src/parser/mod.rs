@@ -5,6 +5,9 @@ use super::token::Token;
 mod errors;
 use errors::ParseError;
 
+#[cfg(test)]
+mod test;
+
 // Operator Precedence
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 pub enum Precedence {
@@ -16,7 +19,6 @@ pub enum Precedence {
     Prefix,      // -X or !X
     Call,        // my_function(X)
 }
-
 #[derive(Debug, Clone)]
 pub struct Parser<'a> {
     lexer: Lexer<'a>,
@@ -66,7 +68,7 @@ impl<'a> Parser<'a> {
     fn parse_let_statement(&mut self) -> Result<Statement, errors::ParseError> {
         let token = Token::Let;
 
-        if !self.expect_peek(Token::Identifier("".to_string())) {
+        if !self.expect_peek(Token::Identifier(String::new())) {
             self.raise_peek_token_mismatch_error(Token::Identifier(String::from("(..)")))?
         }
 
@@ -116,7 +118,7 @@ impl<'a> Parser<'a> {
         let mut left = match self.current_token {
             Token::Identifier(_) => self.parse_identifier_expression()?,
             Token::Int(_) => self.parse_integer_literal_expression()?,
-            Token::Boolean(_) => self.parse_boolean_literal_expression()?,
+            Token::True | Token::False => self.parse_boolean_literal_expression()?,
             Token::If => self.parse_if_expression()?,
             Token::Func => self.parse_function_literal_expression()?,
             Token::Minus | Token::Bang => self.parse_prefix_expression()?,
@@ -141,7 +143,7 @@ impl<'a> Parser<'a> {
                 InfixType::Noop => return Ok(left),
             }
         }
-        return Ok(left);
+        Ok(left)
     }
 
     fn parse_integer_literal_expression(&self) -> Result<Expression, ParseError> {
@@ -170,7 +172,7 @@ impl<'a> Parser<'a> {
 
     fn parse_infix_expression(&mut self, left: Expression) -> Result<Expression, ParseError> {
         let operator = self.current_token.clone();
-        let precedence = self.peek_token_precedence();
+        let precedence = self.current_token_precedence();
         self.advance();
         Ok(Expression::Infix(InfixExpression {
             operator,
@@ -233,9 +235,18 @@ impl<'a> Parser<'a> {
         self.advance();
 
         while !self.is_current_token(Token::RBrace) && !self.is_current_token(Token::Eof) {
+            // DEBUG
+            // println!("[parse_block_statement]: {:?}", self.current_token.clone());
             let stmt = self.parse_statement()?;
+            // println!("[parse_block_statement]: After parsing statement {:?}", stmt);
+            // println!("[parse_block_statement]: current_token after parsing {:?}", self.current_token.clone());
             statements.push(stmt);
             self.advance();
+        }
+
+        // Closing brace missing
+        if self.is_current_token(Token::Eof) {
+            self.raise_token_mismatch_error(Token::RBrace, Token::Eof)?;
         }
 
         let block_statement = BlockStatement { token, statements };
@@ -338,11 +349,21 @@ impl<'a> Parser<'a> {
     }
 
     fn expect_peek(&mut self, token: Token) -> bool {
-        if self.is_peek_token(token) {
-            self.advance();
-            true
-        } else {
-            false
+        match token {
+            Token::Identifier(_) => {
+                if let Token::Identifier(_) = self.peek_token {
+                    self.advance();
+                    true
+                } else {
+                    false
+                }
+            }
+            _ => self
+                .is_peek_token(token)
+                .then(|| {
+                    self.advance();
+                })
+                .is_some(),
         }
     }
 
@@ -367,21 +388,26 @@ impl<'a> Parser<'a> {
         Ok(())
     }
 
-    fn peek_token_precedence(&self) -> Precedence {
-        match self.peek_token {
-            Token::Equal => Precedence::Equals,
-            Token::NotEqual => Precedence::Equals,
-            Token::LessThan => Precedence::LessGreater,
-            Token::LessThanEqual => Precedence::LessGreater,
-            Token::GreaterThan => Precedence::LessGreater,
-            Token::GreaterThanEqual => Precedence::LessGreater,
-            Token::Plus => Precedence::Sum,
-            Token::Minus => Precedence::Sum,
-            Token::Slash => Precedence::Product,
-            Token::Asterisk => Precedence::Product,
+    fn token_precedence(&self, token: &Token) -> Precedence {
+        match token {
+            Token::Equal | Token::NotEqual=> Precedence::Equals,
+            Token::LessThan | Token::LessThanEqual => Precedence::LessGreater,
+            Token::GreaterThan | Token::GreaterThanEqual => Precedence::LessGreater,
+            Token::Plus | Token::Minus => Precedence::Sum,
+            Token::Slash | Token::Asterisk => Precedence::Product,
             Token::LParen => Precedence::Call,
             _ => Precedence::Lowest,
         }
+    }
+
+    #[inline]
+    fn peek_token_precedence(&self) -> Precedence {
+        self.token_precedence(&self.peek_token)
+    }
+
+    #[inline]
+    fn current_token_precedence(&self) -> Precedence {
+        self.token_precedence(&self.current_token)
     }
 
     #[inline]

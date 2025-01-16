@@ -2,6 +2,9 @@ use std::{iter::Peekable, str::Chars};
 
 use super::token::Token;
 
+#[cfg(test)]
+mod test;
+
 #[derive(Debug, Clone)]
 pub struct Lexer<'a> {
     input: &'a str,
@@ -50,13 +53,14 @@ impl<'a> Lexer<'a> {
 
     // Utility Functions
     fn skip_whitespace(&mut self) {
-        while self.cursor.peek().unwrap().is_ascii_whitespace() {
+        while self.cursor.peek().unwrap_or(&'\0').is_ascii_whitespace() {
             self.cursor.next();
         }
     }
 
     fn handle_equality(&mut self, token1: Token, token2: Token) -> Token {
         if self.cursor.peek() == Some(&'=') {
+            self.cursor.next();
             token2
         } else {
             token1

@@ -1,6 +1,7 @@
+use std::cell::RefCell;
 use std::rc::Rc;
 
-use crate::ast::{Identifier, Statement};
+use crate::{ast::BlockStatement, token::Token};
 use environment::Environment;
 
 pub mod environment;
@@ -16,8 +17,8 @@ pub enum Object {
 }
 
 #[derive(Debug, Clone)]
-pub struct FuncObject {
-    parameters: Vec<Identifier>,
-    body: Vec<Statement>,
-    env: Rc<Environment>,
+pub(crate) struct FuncObject {
+    pub(crate) parameters: Vec<Token>,
+    pub(crate) body: BlockStatement,
+    pub(crate) env: Rc<RefCell<Environment>>,
 }

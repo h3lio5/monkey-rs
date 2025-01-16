@@ -7,7 +7,7 @@ use super::{errors::EnvironmentErrors, Object};
 #[derive(Debug, Clone)]
 pub struct Environment {
     store: HashMap<String, Object>,
-    outer: Option<Rc<Environment>>,
+    outer: Option<Rc<RefCell<Environment>>>,
 }
 
 impl Environment {
@@ -18,10 +18,10 @@ impl Environment {
         }
     }
 
-    pub fn new_enclosed(outer: Option<Rc<Environment>>) -> Self {
+    pub fn new_enclosed(outer: Rc<RefCell<Environment>>) -> Self {
         Self {
             store: HashMap::new(),
-            outer,
+            outer: Some(outer),
         }
     }
 
@@ -37,7 +37,7 @@ impl Environment {
 
         // if not found, check the outer environment
         if let Some(outer) = &self.outer {
-            return outer.get(key);
+            return outer.borrow().get(key);
         }
 
         Err(EnvironmentErrors::KeyNotFound {

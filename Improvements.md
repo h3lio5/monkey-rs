@@ -10,3 +10,4 @@ Improvements:
 - add jit: per-branch of ast or bytecode-to-native-code?
 - add a type system
 - tail recursive optimization?
+- assignment statements impl, i.e., `a = a + 1;` must be supported

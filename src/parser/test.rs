@@ -152,7 +152,6 @@ fn test_parser_identifier_expression() {
 
 #[test]
 fn test_parser_operator_precedence() {
-
     let mut lexer = Lexer::new("!-a");
     let mut parser = Parser::new(lexer);
     let mut program = parser.parse_program().unwrap().into_iter();
@@ -209,24 +208,265 @@ fn test_parser_operator_precedence() {
     );
     assert_eq!(program.next(), None);
 
-    lexer = Lexer::new("3 + 4 * 5 != 3 * 1 + 4 * 5");
+    // ((3 + (4 * 5)) != ((3 * 2) + (4 * 5)))
+    lexer = Lexer::new("3 + 4 * 5 != 3 * 2 + 4 * 5");
     parser = Parser::new(lexer);
     program = parser.parse_program().unwrap().into_iter();
+
+    assert_eq!(
+        program.next(),
+        Some(Statement::Expression(ExpressionStatement {
+            token: Token::Int(3),
+            value: Expression::Infix(InfixExpression {
+                operator: Token::NotEqual,
+                left: Box::new(Expression::Infix(InfixExpression {
+                    operator: Token::Plus,
+                    left: Box::new(Expression::IntegerLiteral(Token::Int(3))),
+                    right: Box::new(Expression::Infix(InfixExpression {
+                        operator: Token::Asterisk,
+                        left: Box::new(Expression::IntegerLiteral(Token::Int(4))),
+                        right: Box::new(Expression::IntegerLiteral(Token::Int(5)))
+                    }))
+                })),
+                right: Box::new(Expression::Infix(InfixExpression {
+                    operator: Token::Plus,
+                    left: Box::new(Expression::Infix(InfixExpression {
+                        operator: Token::Asterisk,
+                        left: Box::new(Expression::IntegerLiteral(Token::Int(3))),
+                        right: Box::new(Expression::IntegerLiteral(Token::Int(2)))
+                    })),
+                    right: Box::new(Expression::Infix(InfixExpression {
+                        operator: Token::Asterisk,
+                        left: Box::new(Expression::IntegerLiteral(Token::Int(4))),
+                        right: Box::new(Expression::IntegerLiteral(Token::Int(5)))
+                    }))
+                }))
+            })
+        }))
+    );
+    assert_eq!(program.next(), None);
 }
 
 #[test]
-fn test_parser_integer_literal(){}
+fn test_parser_integer_literal() {
+    let lexer = Lexer::new("1; 2; 3;");
+    let mut parser = Parser::new(lexer);
+    let mut program = parser.parse_program().unwrap().into_iter();
+
+    assert_eq!(
+        program.next(),
+        Some(Statement::Expression(ExpressionStatement {
+            token: Token::Int(1),
+            value: Expression::IntegerLiteral(Token::Int(1))
+        }))
+    );
+    assert_eq!(
+        program.next(),
+        Some(Statement::Expression(ExpressionStatement {
+            token: Token::Int(2),
+            value: Expression::IntegerLiteral(Token::Int(2))
+        }))
+    );
+    assert_eq!(
+        program.next(),
+        Some(Statement::Expression(ExpressionStatement {
+            token: Token::Int(3),
+            value: Expression::IntegerLiteral(Token::Int(3))
+        }))
+    );
+    assert_eq!(program.next(), None);
+}
 
 #[test]
-fn test_parser_boolean_literal(){}
+fn test_parser_boolean_literal() {
+    let lexer = Lexer::new("true; false; true;");
+    let mut parser = Parser::new(lexer);
+    let mut program = parser.parse_program().unwrap().into_iter();
+
+    assert_eq!(
+        program.next(),
+        Some(Statement::Expression(ExpressionStatement {
+            token: Token::True,
+            value: Expression::Boolean(Token::True)
+        }))
+    );
+    assert_eq!(
+        program.next(),
+        Some(Statement::Expression(ExpressionStatement {
+            token: Token::False,
+            value: Expression::Boolean(Token::False)
+        }))
+    );
+    assert_eq!(
+        program.next(),
+        Some(Statement::Expression(ExpressionStatement {
+            token: Token::True,
+            value: Expression::Boolean(Token::True)
+        }))
+    );
+    assert_eq!(program.next(), None);
+}
 
 #[test]
-fn test_parser_if_expression(){}
+fn test_parser_if_expression() {
+    let mut lexer = Lexer::new("if (x > y) {x + y}");
+    let mut parser = Parser::new(lexer);
+    let mut program = parser.parse_program().unwrap().into_iter();
+
+    assert_eq!(
+        program.next(),
+        Some(Statement::Expression(ExpressionStatement {
+            token: Token::If,
+            value: Expression::If(IfExpression {
+                token: Token::If,
+                condition: Box::new(Expression::Infix(InfixExpression {
+                    operator: Token::GreaterThan,
+                    left: Box::new(Expression::Identifier(Token::Identifier("x".to_owned()))),
+                    right: Box::new(Expression::Identifier(Token::Identifier("y".to_owned()))),
+                })),
+                consequence: BlockStatement {
+                    token: Token::LBrace,
+                    statements: vec![Statement::Expression(ExpressionStatement {
+                        token: Token::Identifier("x".to_owned()),
+                        value: Expression::Infix(InfixExpression {
+                            operator: Token::Plus,
+                            left: Box::new(Expression::Identifier(Token::Identifier(
+                                "x".to_owned()
+                            ))),
+                            right: Box::new(Expression::Identifier(Token::Identifier(
+                                "y".to_owned()
+                            )))
+                        })
+                    })]
+                },
+                alternative: None
+            })
+        }))
+    );
+    assert_eq!(program.next(), None);
+
+    lexer = Lexer::new("if (x > y) {x + y} else {x}");
+    parser = Parser::new(lexer);
+    program = parser.parse_program().unwrap().into_iter();
+
+    assert_eq!(
+        program.next(),
+        Some(Statement::Expression(ExpressionStatement {
+            token: Token::If,
+            value: Expression::If(IfExpression {
+                token: Token::If,
+                condition: Box::new(Expression::Infix(InfixExpression {
+                    operator: Token::GreaterThan,
+                    left: Box::new(Expression::Identifier(Token::Identifier("x".to_owned()))),
+                    right: Box::new(Expression::Identifier(Token::Identifier("y".to_owned()))),
+                })),
+                consequence: BlockStatement {
+                    token: Token::LBrace,
+                    statements: vec![Statement::Expression(ExpressionStatement {
+                        token: Token::Identifier("x".to_owned()),
+                        value: Expression::Infix(InfixExpression {
+                            operator: Token::Plus,
+                            left: Box::new(Expression::Identifier(Token::Identifier(
+                                "x".to_owned()
+                            ))),
+                            right: Box::new(Expression::Identifier(Token::Identifier(
+                                "y".to_owned()
+                            )))
+                        })
+                    })]
+                },
+                alternative: Some(BlockStatement {
+                    token: Token::LBrace,
+                    statements: vec![Statement::Expression(ExpressionStatement {
+                        token: Token::Identifier("x".to_owned()),
+                        value: Expression::Identifier(Token::Identifier("x".to_owned()))
+                    })]
+                })
+            })
+        }))
+    );
+    assert_eq!(program.next(), None);
+}
 
 #[test]
-fn test_parser_function_literal(){}
+fn test_parser_function_literal() {
+    let lexer = Lexer::new("fn(x, y) { x + y;}");
+    let mut parser = Parser::new(lexer);
+    let mut program = parser.parse_program().unwrap().into_iter();
+
+    assert_eq!(
+        program.next(),
+        Some(Statement::Expression(ExpressionStatement {
+            token: Token::Func,
+            value: Expression::Func(FuncLiteral {
+                token: Token::Func,
+                parameters: vec![
+                    Token::Identifier("x".to_owned()),
+                    Token::Identifier("y".to_owned())
+                ],
+                body: BlockStatement {
+                    token: Token::LBrace,
+                    statements: vec![Statement::Expression(ExpressionStatement {
+                        token: Token::Identifier("x".to_owned()),
+                        value: Expression::Infix(InfixExpression {
+                            operator: Token::Plus,
+                            left: Box::new(Expression::Identifier(Token::Identifier(
+                                "x".to_owned()
+                            ))),
+                            right: Box::new(Expression::Identifier(Token::Identifier(
+                                "y".to_owned()
+                            )))
+                        })
+                    })]
+                }
+            })
+        }))
+    );
+    assert_eq!(program.next(), None);
+}
 
 #[test]
-fn test_parser_call_expression(){}
+fn test_parser_function_literal_incorrect() {
+    let lexer = Lexer::new("fn(x, y { x + y;}");
+    let mut parser = Parser::new(lexer);
+    let mut program = parser.parse_program();
+    assert_eq!(
+        program.unwrap_err(),
+        ParseError::MismatchedToken {
+            expected: Token::RParen,
+            found: Token::LBrace
+        }
+    );
+}
 
+#[test]
+fn test_parser_call_expression() {
+    let lexer = Lexer::new("add(1, 2 * 3, 4 + 5);");
+    let mut parser = Parser::new(lexer);
+    let mut program = parser.parse_program().unwrap().into_iter();
 
+    assert_eq!(
+        program.next(),
+        Some(Statement::Expression(ExpressionStatement {
+            token: Token::Identifier("add".to_owned()),
+            value: Expression::Call(CallExpression {
+                token: Token::LParen,
+                function: Box::new(Expression::Identifier(Token::Identifier("add".to_owned()))),
+                arguments: vec![
+                    Expression::IntegerLiteral(Token::Int(1)),
+                    Expression::Infix(InfixExpression {
+                        operator: Token::Asterisk,
+                        left: Box::new(Expression::IntegerLiteral(Token::Int(2))),
+                        right: Box::new(Expression::IntegerLiteral(Token::Int(3)))
+                    }),
+                    Expression::Infix(InfixExpression {
+                        operator: Token::Plus,
+                        left: Box::new(Expression::IntegerLiteral(Token::Int(4))),
+                        right: Box::new(Expression::IntegerLiteral(Token::Int(5)))
+                    })
+                ]
+            })
+        }))
+    );
+    assert_eq!(program.next(), None);
+}

@@ -245,6 +245,34 @@ fn test_parser_operator_precedence() {
         }))
     );
     assert_eq!(program.next(), None);
+
+    // (a * ([1, 2, 3, 4])) * b
+    lexer = Lexer::new("a * [1, 2, 3] + c");
+    parser = Parser::new(lexer);
+    program = parser.parse_program().unwrap().into_iter();
+    assert_eq!(
+        program.next(),
+        Some(Statement::Expression(ExpressionStatement {
+            token: Token::Identifier("a".to_string()),
+            value: Expression::Infix(InfixExpression {
+                operator: Token::Plus,
+                left: Box::new(Expression::Infix(InfixExpression {
+                    operator: Token::Asterisk,
+                    left: Box::new(Expression::Identifier(Token::Identifier("a".to_string()))),
+                    right: Box::new(Expression::Array(ArrayLiteral {
+                        token: Token::LBracket,
+                        elements: vec![
+                            Expression::IntegerLiteral(Token::Int(1)),
+                            Expression::IntegerLiteral(Token::Int(2)),
+                            Expression::IntegerLiteral(Token::Int(3))
+                        ]
+                    }))
+                })),
+                right: Box::new(Expression::Identifier(Token::Identifier("c".to_string())))
+            })
+        }))
+    );
+    assert_eq!(program.next(), None);
 }
 
 #[test]

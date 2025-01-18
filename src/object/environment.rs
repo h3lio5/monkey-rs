@@ -1,7 +1,5 @@
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
-use crate::token::Token;
-
 use super::{errors::EnvironmentErrors, Object};
 
 #[derive(Debug, Clone, PartialEq)]

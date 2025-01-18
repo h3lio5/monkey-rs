@@ -62,20 +62,28 @@ fn test_evaluator_string_expr() {
     let mut parser = Parser::new(lexer);
     let mut program = parser.parse_program().unwrap();
     let mut evaluator = Evaluator::new();
-    assert_eq!(evaluator.eval_program(program).unwrap(), Object::String("heyy".to_string()));
+    assert_eq!(
+        evaluator.eval_program(program).unwrap(),
+        Object::String("heyy".to_string())
+    );
 
     lexer = Lexer::new("\"baby girl\";");
     parser = Parser::new(lexer);
     program = parser.parse_program().unwrap();
     evaluator = Evaluator::new();
-    assert_eq!(evaluator.eval_program(program).unwrap(), Object::String("baby girl".to_string()));
+    assert_eq!(
+        evaluator.eval_program(program).unwrap(),
+        Object::String("baby girl".to_string())
+    );
 
     lexer = Lexer::new("\"baby\" + \" \" + \"girl\";");
     parser = Parser::new(lexer);
     program = parser.parse_program().unwrap();
     evaluator = Evaluator::new();
-    assert_eq!(evaluator.eval_program(program).unwrap(), Object::String("baby girl".to_string()));
-
+    assert_eq!(
+        evaluator.eval_program(program).unwrap(),
+        Object::String("baby girl".to_string())
+    );
 }
 
 #[test]
@@ -245,7 +253,7 @@ fn test_evaluator_return_statement() {
     let mut evaluator = Evaluator::new();
     assert_eq!(
         evaluator.eval_program(program).unwrap(),
-        Object::Return(Box::new(Object::Int(10)))
+        Object::Int(10)
     );
 
     lexer = Lexer::new("return 10; 11;");
@@ -254,7 +262,7 @@ fn test_evaluator_return_statement() {
     evaluator = Evaluator::new();
     assert_eq!(
         evaluator.eval_program(program).unwrap(),
-        Object::Return(Box::new(Object::Int(10)))
+        Object::Int(10)
     );
 
     lexer = Lexer::new("9; return 2 * 5; 11;");
@@ -263,7 +271,7 @@ fn test_evaluator_return_statement() {
     evaluator = Evaluator::new();
     assert_eq!(
         evaluator.eval_program(program).unwrap(),
-        Object::Return(Box::new(Object::Int(10)))
+        Object::Int(10)
     );
 
     lexer = Lexer::new(
@@ -275,7 +283,7 @@ fn test_evaluator_return_statement() {
     evaluator = Evaluator::new();
     assert_eq!(
         evaluator.eval_program(program).unwrap(),
-        Object::Return(Box::new(Object::Boolean(true)))
+        Object::Boolean(true)
     );
 
     lexer = Lexer::new(
@@ -308,7 +316,7 @@ fn test_evaluator_function_object() {
     evaluator = Evaluator::new();
     assert!(matches!(
         evaluator.eval_program(program).unwrap(),
-        Object::Return(_)
+        Object::Func(_)
     ));
 
     lexer = Lexer::new("let a = fn(x) {x}; a;");
@@ -345,11 +353,56 @@ fn test_evaluator_function_call() {
     parser = Parser::new(lexer);
     program = parser.parse_program().unwrap();
     evaluator = Evaluator::new();
-    assert_eq!(evaluator.eval_program(program).unwrap(), Object::String("Hello mah man".to_string()));
+    assert_eq!(
+        evaluator.eval_program(program).unwrap(),
+        Object::String("Hello mah man".to_string())
+    );
 
     lexer = Lexer::new("let sayHello = fn(name) { \"Hello mah man\" + \" \" + name + \"!\"; }; sayHello(\"donny\");");
     parser = Parser::new(lexer);
     program = parser.parse_program().unwrap();
     evaluator = Evaluator::new();
-    assert_eq!(evaluator.eval_program(program).unwrap(), Object::String("Hello mah man donny!".to_string()));
+    assert_eq!(
+        evaluator.eval_program(program).unwrap(),
+        Object::String("Hello mah man donny!".to_string())
+    );
+}
+
+#[test]
+fn test_evaluator_array_indexing() {
+    let mut lexer = Lexer::new("let i = 0; [1,2][i];");
+    let mut parser = Parser::new(lexer);
+    let mut program = parser.parse_program().unwrap();
+    let mut evaluator = Evaluator::new();
+    assert_eq!(evaluator.eval_program(program).unwrap(), Object::Int(1));
+
+    lexer = Lexer::new("[1, 2, 3][1 + 1];");
+    parser = Parser::new(lexer);
+    program = parser.parse_program().unwrap();
+    evaluator = Evaluator::new();
+    assert_eq!(evaluator.eval_program(program).unwrap(), Object::Int(3));
+
+    lexer = Lexer::new("let myArray = [1, 2, 3]; myArray[2];");
+    parser = Parser::new(lexer);
+    program = parser.parse_program().unwrap();
+    evaluator = Evaluator::new();
+    assert_eq!(evaluator.eval_program(program).unwrap(), Object::Int(3));
+
+    lexer = Lexer::new("let myArray = [1, 2, 3]; myArray[0] + myArray[1] + myArray[2];");
+    parser = Parser::new(lexer);
+    program = parser.parse_program().unwrap();
+    evaluator = Evaluator::new();
+    assert_eq!(evaluator.eval_program(program).unwrap(), Object::Int(6));
+
+    lexer = Lexer::new("[1,2,3][3]");
+    parser = Parser::new(lexer);
+    program = parser.parse_program().unwrap();
+    evaluator = Evaluator::new();
+    assert_eq!(evaluator.eval_program(program).unwrap(), Object::Null);
+
+    lexer = Lexer::new("[1,2,3][-1]");
+    parser = Parser::new(lexer);
+    program = parser.parse_program().unwrap();
+    evaluator = Evaluator::new();
+    assert_eq!(evaluator.eval_program(program).unwrap(), Object::Null);
 }

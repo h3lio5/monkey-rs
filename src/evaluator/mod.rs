@@ -1,20 +1,25 @@
 use std::cell::RefCell;
+use std::collections::HashMap;
 use std::mem::discriminant;
 use std::rc::Rc;
 
-use crate::ast::*;
-use crate::object::{environment::Environment, FuncObject, Object};
-use crate::token::Token;
+use crate::{
+    ast::*,
+    object::{environment::Environment, FuncObject, Object},
+    token::Token,
+};
 
 mod errors;
 use errors::*;
 #[cfg(test)]
 mod tests;
 
+type Env = Rc<RefCell<Environment>>;
+
 /// The evaluator for the Monkey programming language
 #[derive(Debug, Clone)]
 pub struct Evaluator {
-    env: Rc<RefCell<Environment>>,
+    env: Env,
 }
 
 impl Evaluator {
@@ -28,8 +33,8 @@ impl Evaluator {
         let mut result = Object::Null;
         for statement in program {
             result = self.eval_statement(statement)?;
-            if matches!(result, Object::Return(_)) {
-                return Ok(result);
+            if let Object::Return(value) = result {
+                return Ok(*value);
             }
         }
         Ok(result)
@@ -44,15 +49,14 @@ impl Evaluator {
     }
 
     fn eval_let_statement(&mut self, stmt: LetStatement) -> EvalResult<Object> {
-        let val = self.eval_expression(stmt.value)?;
-        if let Token::Identifier(ident) = stmt.name {
-            self.env.borrow_mut().set(&ident, val);
-            Ok(Object::Null)
-        } else {
-            Err(EvalError::UnknownIdentifier(
+        let Token::Identifier(ident) = stmt.name else {
+            return Err(EvalError::UnknownIdentifier(
                 "invalid identifier".to_string(),
-            ))
-        }
+            ));
+        };
+        let value = self.eval_expression(stmt.value)?;
+        self.env.borrow_mut().set(&ident, value);
+        Ok(Object::Null)
     }
 
     fn eval_return_statement(&mut self, stmt: ReturnStatement) -> EvalResult<Object> {
@@ -71,6 +75,9 @@ impl Evaluator {
             Expression::If(expr) => self.eval_if_expression(expr),
             Expression::Func(expr) => self.eval_func_literal(expr),
             Expression::Call(expr) => self.eval_call_expression(expr),
+            Expression::Array(expr) => self.eval_array_expression(expr),
+            Expression::Index(expr) => self.eval_index_expression(expr),
+            Expression::Hash(expr) => self.eval_hash_expression(expr),
         }
     }
 
@@ -189,14 +196,21 @@ impl Evaluator {
         })
     }
 
-    fn eval_string_infix_expression(&self, operator: Token, left: &String, right: &String) -> EvalResult<Object> {
+    fn eval_string_infix_expression(
+        &self,
+        operator: Token,
+        left: &String,
+        right: &String,
+    ) -> EvalResult<Object> {
         if let Token::Plus = operator {
-            Ok(Object::String(format!("{}{}",left, right)))
+            Ok(Object::String(format!("{}{}", left, right)))
         } else {
-            Err(EvalError::UnsupportedOperation("unsupported string operation".to_string()))
+            Err(EvalError::UnsupportedOperation(
+                "unsupported string operation".to_string(),
+            ))
         }
     }
-    
+
     fn eval_boolean_infix_expression(
         &self,
         operator: Token,
@@ -246,39 +260,92 @@ impl Evaluator {
     }
 
     fn eval_call_expression(&mut self, expr: CallExpression) -> EvalResult<Object> {
-        let args = expr
-            .arguments
+        let Object::Func(func) = self.eval_expression(*expr.function)? else {
+            return Err(EvalError::InvalidFunction);
+        };
+
+        let args = self.eval_arguments(expr.arguments)?;
+        let env_cache = Rc::clone(&self.env);
+
+        let result = self.execute_function(func, args)?;
+        self.env = env_cache;
+
+        Ok(result)
+    }
+
+    fn eval_arguments(&mut self, arguments: Vec<Expression>) -> EvalResult<Vec<Object>> {
+        arguments
+            .into_iter()
+            .map(|arg| self.eval_expression(arg))
+            .collect()
+    }
+
+    fn execute_function(&mut self, func: FuncObject, args: Vec<Object>) -> EvalResult<Object> {
+        let mut func_env = Environment::new_enclosed(func.env);
+
+        // Bind parameters to arguments
+        for (param, arg) in func.parameters.into_iter().zip(args) {
+            if let Token::Identifier(name) = param {
+                func_env.set(&name, arg);
+            }
+        }
+
+        self.env = Rc::new(RefCell::new(func_env));
+        self.eval_block_statement(func.body)
+    }
+
+    fn eval_array_expression(&mut self, expr: ArrayLiteral) -> EvalResult<Object> {
+        let array = expr
+            .elements
             .into_iter()
             .map(|arg| self.eval_expression(arg))
             .collect::<EvalResult<Vec<_>>>()?;
 
-        let env_cache = Rc::clone(&self.env);
+        Ok(Object::Array(array))
+    }
 
-        match self.eval_expression(*expr.function)? {
-            Object::Func(func) => {
-                let mut func_env = Environment::new_enclosed(func.env);
+    fn eval_index_expression(&mut self, expr: IndexExpression) -> EvalResult<Object> {
+        let left = self.eval_expression(*expr.left)?;
+        let index = self.eval_expression(*expr.index)?;
 
-                // Bind parameters to arguments
-                for (param, arg) in func.parameters.into_iter().zip(args) {
-                    if let Token::Identifier(name) = param {
-                        func_env.set(&name, arg);
-                    }
-                }
-
-                self.env = Rc::new(RefCell::new(func_env));
-                let result = self.eval_block_statement(func.body);
-                self.env = env_cache;
-
-                result
+        match (&left, &index) {
+            (Object::Array(array), Object::Int(index)) => {
+                self.eval_array_index_expression(array, index)
             }
-            _ => Err(EvalError::InvalidFunction),
+            (Object::Hash(hash), Object::Int(_) | Object::Boolean(_) | Object::String(_)) => {
+                Ok(hash.get(&index).cloned().unwrap_or(Object::Null))
+            }
+            (Object::Array(_), non_int) => Err(EvalError::TypeMismatch(format!(
+                "array index must be INTEGER, got {non_int:?}"
+            ))),
+            (Object::Hash(_), non_hashable) => Err(EvalError::TypeMismatch(format!(
+                "hash key must be INTEGER, BOOLEAN, or STRING, got {non_hashable:?}"
+            ))),
+            (non_indexable, _) => Err(EvalError::UnsupportedOperation(format!(
+                "index operator not supported for type {non_indexable:?}"
+            ))),
         }
     }
 
-    fn is_truthy(&self, obj: &Object) -> bool {
-        match obj {
-            Object::Boolean(false) | Object::Null => false,
-            _ => true,
+    fn eval_array_index_expression(&mut self, array: &[Object], index: &i64) -> EvalResult<Object> {
+        match array.get(*index as usize) {
+            Some(value) => Ok(value.clone()),
+            None => Ok(Object::Null), // Return Null if the index is out of bounds
         }
+    }
+
+    fn eval_hash_expression(&mut self, expr: HashLiteral) -> EvalResult<Object> {
+        let mut hash = HashMap::new();
+        for (key_expr, value_expr) in expr.pairs {
+            let key = self.eval_expression(key_expr)?;
+            let value = self.eval_expression(value_expr)?;
+            hash.insert(key, value);
+        }
+        Ok(Object::Hash(hash))
+    }
+
+    #[inline]
+    fn is_truthy(&self, obj: &Object) -> bool {
+        !matches!(obj, Object::Boolean(false) | Object::Null)
     }
 }

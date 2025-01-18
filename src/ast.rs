@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use super::token::Token;
 
 pub type Program = Vec<Statement>;
@@ -33,6 +35,9 @@ pub enum Expression {
     IntegerLiteral(Token),
     Identifier(Token),
     StringLiteral(Token),
+    Array(ArrayLiteral),
+    Hash(HashLiteral),
+    Index(IndexExpression),
     Prefix(PrefixExpression),
     Infix(InfixExpression),
     Boolean(Token),
@@ -69,6 +74,25 @@ pub struct BlockStatement {
 }
 
 #[derive(Debug, Clone, PartialEq)]
+pub struct ArrayLiteral {
+    pub token: Token,
+    pub elements: Vec<Expression>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct IndexExpression {
+    pub token: Token,
+    pub left: Box<Expression>,  // array literal or identifier
+    pub index: Box<Expression>, // should be integer literal
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct HashLiteral {
+    pub token: Token,
+    pub pairs: Vec<(Expression, Expression)>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
 pub struct FuncLiteral {
     pub token: Token,           // the fn token
     pub parameters: Vec<Token>, // Token::Ident("<name>")
@@ -86,5 +110,6 @@ pub struct CallExpression {
 pub enum InfixType {
     Regular,
     Call,
+    Index,
     Noop,
 }

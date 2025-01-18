@@ -37,6 +37,7 @@ impl<'a> Lexer<'a> {
             '<' => self.handle_equality(Token::LessThan, Token::LessThanEqual),
             '>' => self.handle_equality(Token::GreaterThan, Token::GreaterThanEqual),
             ';' => Token::Semicolon,
+            ':' => Token::Colon,
             '(' => Token::LParen,
             ')' => Token::RParen,
             ',' => Token::Comma,

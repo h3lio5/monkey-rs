@@ -18,6 +18,7 @@ pub(self) enum Precedence {
     Product,     // *
     Prefix,      // -X or !X
     Call,        // my_function(X)
+    Index,       // array[index]
 }
 /// Parser for the monkey programming language
 #[derive(Debug, Clone)]
@@ -106,6 +107,10 @@ impl<'a> Parser<'a> {
                     self.advance();
                     self.parse_call_expression(left)?
                 }
+                InfixType::Index => {
+                    self.advance();
+                    self.parse_index_expression(left)?
+                }
                 InfixType::Noop => break,
             };
         }
@@ -129,6 +134,8 @@ impl<'a> Parser<'a> {
                 }))
             }
             Token::LParen => self.parse_grouped_expression(),
+            Token::LBracket => self.parse_array_literal_expression(),
+            Token::LBrace => self.parse_hash_literal_expression(),
             _ => Err(ParseError::NoPrefixParseFunction {
                 token: self.current_token.clone(),
             }),
@@ -229,7 +236,7 @@ impl<'a> Parser<'a> {
 
     fn parse_call_expression(&mut self, function: Expression) -> Result<Expression, ParseError> {
         let token = self.current_token.clone();
-        let arguments = self.parse_call_arguments()?;
+        let arguments = self.parse_list_expression(Token::RParen)?;
         let call_expression = Expression::Call(CallExpression {
             token,
             function: Box::new(function),
@@ -238,25 +245,67 @@ impl<'a> Parser<'a> {
         Ok(call_expression)
     }
 
-    fn parse_call_arguments(&mut self) -> Result<Vec<Expression>, ParseError> {
-        let mut arguments = Vec::new();
-        if self.is_peek_token(Token::RParen) {
+    fn parse_array_literal_expression(&mut self) -> Result<Expression, ParseError> {
+        let token = self.current_token.clone();
+        let elements = self.parse_list_expression(Token::RBracket)?;
+        Ok(Expression::Array(ArrayLiteral { token, elements }))
+    }
+
+    fn parse_list_expression(&mut self, end: Token) -> Result<Vec<Expression>, ParseError> {
+        let mut list = Vec::new();
+        if self.is_peek_token(end.clone()) {
             self.advance();
-            return Ok(arguments);
+            return Ok(list);
         }
         self.advance();
         let mut expr = self.parse_expression(Precedence::Lowest)?;
-        arguments.push(expr);
+        list.push(expr);
         while self.is_peek_token(Token::Comma) {
             self.advance();
             self.advance();
             expr = self.parse_expression(Precedence::Lowest)?;
-            arguments.push(expr);
+            list.push(expr);
+        }
+        self.expect_next(end)?;
+        Ok(list)
+    }
+
+    fn parse_hash_literal_expression(&mut self) -> Result<Expression, ParseError> {
+        let token = self.current_token.clone();
+        let mut pairs = Vec::new();
+        if self.is_peek_token(Token::RBrace) {
+            self.advance();
+            return Ok(Expression::Hash(HashLiteral { token, pairs }));
         }
 
-        self.expect_next(Token::RParen)?;
+        let mut key = self.parse_expression(Precedence::Lowest)?;
+        self.expect_next(Token::Colon)?;
+        let mut value = self.parse_expression(Precedence::Lowest)?;
+        pairs.push((key, value));
 
-        Ok(arguments)
+        while self.is_peek_token(Token::Comma) {
+            self.advance();
+            self.advance();
+            key = self.parse_expression(Precedence::Lowest)?;
+            self.expect_next(Token::Colon)?;
+            value = self.parse_expression(Precedence::Lowest)?;
+            pairs.push((key, value));
+        }
+        self.expect_next(Token::RBrace)?;
+
+        Ok(Expression::Hash(HashLiteral { token, pairs }))
+    }
+
+    fn parse_index_expression(&mut self, left: Expression) -> Result<Expression, ParseError> {
+        let token = self.current_token.clone();
+        self.advance();
+        let index = self.parse_expression(Precedence::Lowest)?;
+        self.expect_next(Token::RBracket)?;
+        Ok(Expression::Index(IndexExpression {
+            token,
+            left: Box::new(left),
+            index: Box::new(index),
+        }))
     }
 
     fn parse_grouped_expression(&mut self) -> Result<Expression, ParseError> {
@@ -356,6 +405,7 @@ impl<'a> Parser<'a> {
             Token::Plus | Token::Minus => Precedence::Sum,
             Token::Slash | Token::Asterisk => Precedence::Product,
             Token::LParen => Precedence::Call,
+            Token::LBracket => Precedence::Index,
             _ => Precedence::Lowest,
         }
     }
@@ -383,6 +433,7 @@ impl<'a> Parser<'a> {
             | Token::LessThan
             | Token::LessThanEqual => InfixType::Regular,
             Token::LParen => InfixType::Call,
+            Token::LBracket => InfixType::Index,
             _ => InfixType::Noop,
         }
     }

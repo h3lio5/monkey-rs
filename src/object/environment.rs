@@ -4,7 +4,7 @@ use crate::token::Token;
 
 use super::{errors::EnvironmentErrors, Object};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Environment {
     store: HashMap<String, Object>,
     outer: Option<Rc<RefCell<Environment>>>,

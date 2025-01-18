@@ -42,8 +42,11 @@ impl<'a> Lexer<'a> {
             ',' => Token::Comma,
             '{' => Token::LBrace,
             '}' => Token::RBrace,
+            '[' => Token::LBracket,
+            ']' => Token::RBracket,
             c if c.is_ascii_digit() => self.read_number(c, 1),
             c if c.is_ascii_alphabetic() || c == '_' => self.read_identifier(c),
+            '"' => self.read_string(),
             '\0' => Token::Eof,
             _ => Token::Illegal,
         };
@@ -96,7 +99,6 @@ impl<'a> Lexer<'a> {
 
     fn read_identifier(&mut self, first_letter: char) -> Token {
         let mut identifier = String::from(first_letter);
-
         while let Some(&ch) = self.cursor.peek() {
             if !ch.is_alphanumeric() {
                 break;
@@ -106,5 +108,16 @@ impl<'a> Lexer<'a> {
         }
 
         Token::get_keyword_or_identifier(&identifier)
+    }
+
+    fn read_string(&mut self) -> Token {
+        let mut string = String::new();
+        while let Some(ch) = self.cursor.next() {
+            if ch == '"' || ch == '\0' {
+                break;
+            }
+            string.push(ch);
+        }
+        Token::String(string)
     }
 }

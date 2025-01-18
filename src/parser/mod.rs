@@ -6,11 +6,11 @@ mod errors;
 use errors::ParseError;
 
 #[cfg(test)]
-mod test;
+mod tests;
 
 // Operator Precedence
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
-pub enum Precedence {
+pub(self) enum Precedence {
     Lowest,
     Equals,      // ==
     LessGreater, // <, <=, >, >=
@@ -115,6 +115,7 @@ impl<'a> Parser<'a> {
     fn parse_prefix_expression(&mut self) -> Result<Expression, ParseError> {
         match self.current_token {
             Token::Identifier(_) => self.parse_identifier_expression(),
+            Token::String(_) => self.parse_string_literal_expression(),
             Token::Int(_) => self.parse_integer_literal_expression(),
             Token::True | Token::False => self.parse_boolean_literal_expression(),
             Token::If => self.parse_if_expression(),
@@ -137,6 +138,11 @@ impl<'a> Parser<'a> {
     fn parse_integer_literal_expression(&self) -> Result<Expression, ParseError> {
         let integer_literal_token = self.current_token.clone();
         Ok(Expression::IntegerLiteral(integer_literal_token))
+    }
+
+    fn parse_string_literal_expression(&self) -> Result<Expression, ParseError> {
+        let string_literal_token = self.current_token.clone();
+        Ok(Expression::StringLiteral(string_literal_token))
     }
 
     fn parse_boolean_literal_expression(&self) -> Result<Expression, ParseError> {

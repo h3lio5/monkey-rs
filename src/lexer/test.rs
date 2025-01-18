@@ -3,7 +3,7 @@ use crate::token::Token;
 
 #[test]
 fn test_lexer_simple_symbols() {
-    let mut lexer = Lexer::new("=+(){},;");
+    let mut lexer = Lexer::new("=+(){},[];");
     assert_eq!(lexer.next_token(), Token::Assign);
     assert_eq!(lexer.next_token(), Token::Plus);
     assert_eq!(lexer.next_token(), Token::LParen);
@@ -11,6 +11,8 @@ fn test_lexer_simple_symbols() {
     assert_eq!(lexer.next_token(), Token::LBrace);
     assert_eq!(lexer.next_token(), Token::RBrace);
     assert_eq!(lexer.next_token(), Token::Comma);
+    assert_eq!(lexer.next_token(), Token::LBracket);
+    assert_eq!(lexer.next_token(), Token::RBracket);
     assert_eq!(lexer.next_token(), Token::Semicolon);
     assert_eq!(lexer.next_token(), Token::Eof);
 }
@@ -122,5 +124,12 @@ fn test_lexer_if_boolean() {
     assert_eq!(lexer.next_token(), Token::False);
     assert_eq!(lexer.next_token(), Token::Semicolon);
     assert_eq!(lexer.next_token(), Token::RBrace);
+    assert_eq!(lexer.next_token(), Token::Eof);
+}
+
+#[test]
+fn test_lexer_string_literal() {
+    let mut lexer = Lexer::new("\"Hello World!\"");
+    assert_eq!(lexer.next_token(), Token::String("Hello World!".to_owned()));
     assert_eq!(lexer.next_token(), Token::Eof);
 }

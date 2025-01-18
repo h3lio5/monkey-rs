@@ -32,6 +32,7 @@ pub struct ExpressionStatement {
 pub enum Expression {
     IntegerLiteral(Token),
     Identifier(Token),
+    StringLiteral(Token),
     Prefix(PrefixExpression),
     Infix(InfixExpression),
     Boolean(Token),

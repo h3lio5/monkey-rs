@@ -308,6 +308,36 @@ fn test_parser_boolean_literal() {
 }
 
 #[test]
+fn test_parser_string_literal() {
+    let lexer = Lexer::new("\"yoo\"; \"hoo\"; \"baby\";");
+    let mut parser = Parser::new(lexer);
+    let mut program = parser.parse_program().unwrap().into_iter();
+
+    assert_eq!(
+        program.next(),
+        Some(Statement::Expression(ExpressionStatement {
+            token: Token::String("yoo".to_string()),
+            value: Expression::StringLiteral(Token::String("yoo".to_string()))
+        }))
+    );
+    assert_eq!(
+        program.next(),
+        Some(Statement::Expression(ExpressionStatement {
+            token: Token::String("hoo".to_string()),
+            value: Expression::StringLiteral(Token::String("hoo".to_string()))
+        }))
+    );
+    assert_eq!(
+        program.next(),
+        Some(Statement::Expression(ExpressionStatement {
+            token: Token::String("baby".to_string()),
+            value: Expression::StringLiteral(Token::String("baby".to_string()))
+        }))
+    );
+    assert_eq!(program.next(), None);
+}
+
+#[test]
 fn test_parser_if_expression() {
     let mut lexer = Lexer::new("if (x > y) {x + y}");
     let mut parser = Parser::new(lexer);

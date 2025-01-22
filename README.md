@@ -8,7 +8,7 @@ Implementation based on the books [interpreter book](https://interpreterbook.com
 - [x] parser       
 - [x] tree-walk interpreter       
 - [ ] vm (bytecode interpreter)      
-- [ ] compiler
+- [ ] codegen
 - [ ] repl
 - [ ] documentation
 - [ ] examples

@@ -35,7 +35,11 @@ impl Compiler {
         match statement {
             Statement::Let(smtm) => self.compile_let_statement(smtm),
             Statement::Return(smtm) => self.compile_return_statement(smtm),
-            Statement::Expression(smtm) => self.compile_expr_statement(smtm.value),
+            Statement::Expression(smtm) => {
+                self.compile_expr_statement(smtm.value);
+                // pop off the expression result from the stack to prevent it from blowing up
+                self.emit(OpCode::POP, vec![]);
+            }
         }
     }
 
@@ -51,7 +55,10 @@ impl Compiler {
         match expr {
             Expression::IntegerLiteral(token) => self.compile_integer_literal(token),
             Expression::Infix(expr) => self.compile_infix_expr(expr),
-            _ => todo!(),
+            Expression::Boolean(token) => self.compile_boolean_literal(token),
+            _ => {
+                println!("{expr:?}")
+            }
         }
     }
 
@@ -68,6 +75,14 @@ impl Compiler {
         }
     }
 
+    fn compile_boolean_literal(&mut self, token: Token) {
+        match token {
+            Token::True => self.emit(OpCode::TRUE, vec![]),
+            Token::False => self.emit(OpCode::FALSE, vec![]),
+            _ => panic!("Expected a boolean token, but got: {:?}", token),
+        };
+    }
+
     fn compile_infix_expr(&mut self, expr: InfixExpression) {
         let left = self.compile_expr_statement(*expr.left);
         let right = self.compile_expr_statement(*expr.right);
@@ -75,6 +90,15 @@ impl Compiler {
         match expr.operator {
             Token::Plus => {
                 self.emit(OpCode::ADD, vec![]);
+            }
+            Token::Minus => {
+                self.emit(OpCode::SUB, vec![]);
+            }
+            Token::Asterisk => {
+                self.emit(OpCode::MUL, vec![]);
+            }
+            Token::Slash => {
+                self.emit(OpCode::DIV, vec![]);
             }
             _ => todo!(),
         }

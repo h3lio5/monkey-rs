@@ -4,7 +4,13 @@ use std::fs::OpenOptions;
 pub enum OpCode {
     CONSTANT = 0x00,
     ADD = 0x01,
-    INVALID = 0x03,
+    SUB = 0x02,
+    MUL = 0x03,
+    DIV = 0x04,
+    POP = 0x05,
+    TRUE = 0x06,
+    FALSE = 0x07,
+    INVALID = 0xFF,
 }
 
 impl From<u8> for OpCode {
@@ -12,6 +18,12 @@ impl From<u8> for OpCode {
         match byte {
             0x00 => OpCode::CONSTANT,
             0x01 => OpCode::ADD,
+            0x02 => OpCode::SUB,
+            0x03 => OpCode::MUL,
+            0x04 => OpCode::DIV,
+            0x05 => OpCode::POP,
+            0x06 => OpCode::TRUE,
+            0x07 => OpCode::FALSE,
             _ => OpCode::INVALID,
         }
     }

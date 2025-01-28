@@ -11,7 +11,13 @@ pub enum VmError {
     #[error("error decoding opcode {opcode:?}")]
     OpcodeDecodingError { opcode: OpCode },
     #[error("Stack is empty!")]
-    StackEmptyError
+    StackEmptyError,
+    #[error("Incorrect Type")]
+    TypeError,
+    #[error("Division by 0 error!")]
+    DivByZeroError,
+    #[error("Unsupported binary operation")]
+    UnsupportedBinaryOperation,
 }
 
 pub(super) type VmResult<T> = Result<T, VmError>;

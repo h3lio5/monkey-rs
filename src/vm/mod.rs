@@ -21,11 +21,14 @@ pub struct Vm {
 
 impl Vm {
     fn new(bytecode: ByteCode) -> Self {
+        let mut stack = Vec::with_capacity(STACK_SIZE);
+        stack.resize(STACK_SIZE, Object::Null);
+
         Self {
             constants: bytecode.constants,
             instructions: bytecode.instructions,
             sp: 0,
-            stack: Vec::with_capacity(STACK_SIZE),
+            stack,
         }
     }
 
@@ -36,11 +39,14 @@ impl Vm {
 
             match opcode {
                 OpCode::CONSTANT => self.handle_constant_opcode(&mut ip)?,
-                OpCode::ADD => self.handle_add_opcode(&mut ip)?,
-                _ => todo!(),
+                OpCode::ADD | OpCode::SUB | OpCode::MUL | OpCode::DIV => {
+                    self.handle_binary_op(opcode, &mut ip)?
+                }
+                OpCode::POP => self.handle_pop_opcode(&mut ip)?,
+                OpCode::TRUE | OpCode::FALSE => self.handle_bool_opcode(opcode, &mut ip)?,
+                op => return Err(VmError::OpcodeDecodingError { opcode: op }),
             }
         }
-
         Ok(())
     }
 
@@ -63,53 +69,91 @@ impl Vm {
         Ok(())
     }
 
-    fn handle_add_opcode(&mut self, ip: &mut usize) -> VmResult<()> {
+    fn handle_binary_op(&mut self, opcode: OpCode, ip: &mut usize) -> VmResult<()> {
         // move to the next instruction
         *ip += 1;
         // pop off the top two stack elements which are the operands
-        let right = self.stack_pop().ok_or(VmError::StackEmptyError)?;
-        let left = self.stack_pop().ok_or(VmError::StackEmptyError)?;
+        let right = self.stack_pop()?;
+        let left = self.stack_pop()?;
 
-        
         let result = match (left, right) {
-            (Object::Int(left_val), Object::Int(right_val)) => Object::Int(left_val + right_val),
-            _ => todo!()
+            (Object::Int(left_val), Object::Int(right_val)) => {
+                self.execute_binary_integer_op(opcode, left_val, right_val)?
+            }
+            _ => return Err(VmError::TypeError),
         };
-
         // push the result on to the stack
         self.stack_push(result)?;
         Ok(())
     }
 
-
-    /////////////////////// Stack Operations //////////////////////
-    fn stack_push(&mut self, obj: Object) -> VmResult<()> {
-        // Check for stack overflow before pushing the object
-        if self.sp >= STACK_SIZE {
-            return Err(errors::VmError::StackOverflowError);
+    fn execute_binary_integer_op(
+        &mut self,
+        opcode: OpCode,
+        left: i64,
+        right: i64,
+    ) -> VmResult<Object> {
+        match opcode {
+            OpCode::ADD => Ok(Object::Int(left + right)),
+            OpCode::SUB => Ok(Object::Int(left - right)),
+            OpCode::MUL => Ok(Object::Int(left * right)),
+            OpCode::DIV if right == 0 => Err(VmError::DivByZeroError),
+            OpCode::DIV => Ok(Object::Int(left / right)),
+            _ => Err(VmError::UnsupportedBinaryOperation),
         }
-        // Push the object onto the stack
-        self.stack.push(obj);
-        self.sp += 1; // Increment the stack pointer
-    
+    }
+
+    #[inline]
+    fn handle_pop_opcode(&mut self, ip: &mut usize) -> VmResult<()> {
+        // move to the next instruction
+        *ip += 1;
+        let _ = self.stack_pop()?;
         Ok(())
     }
 
-    fn stack_pop(&mut self) -> Option<Object> {
-        if let Some(value) = self.stack.pop() {
-            self.sp -= 1;
-            Some(value)
-        } else {
-            None
+    #[inline]
+    fn handle_bool_opcode(&mut self, opcode: OpCode, ip: &mut usize) -> VmResult<()> {
+        // move to the next instruction
+        *ip += 1;
+        match opcode {
+            OpCode::TRUE => self.stack_push(Object::Boolean(true)),
+            OpCode::FALSE => self.stack_push(Object::Boolean(false)),
+            _ => unreachable!(),
+        }
+    }
+    /////////////////////// Stack Operations //////////////////////
+    /// Pushes an object onto the stack.
+    /// Returns `StackOverflowError` if the stack is full.
+    #[inline]
+    fn stack_push(&mut self, obj: Object) -> VmResult<()> {
+        match self.sp {
+            sp if sp >= STACK_SIZE => Err(VmError::StackOverflowError),
+            sp => {
+                self.stack[sp] = obj;
+                self.sp += 1;
+                Ok(())
+            }
         }
     }
 
-    fn stack_top(&self) -> Option<Object> {
-        if self.sp == 0 {
-            None
-        } else {
-            let top = self.stack[self.sp - 1].clone();
-            Some(top)
+    /// Pops and returns the top object from the stack.
+    /// Returns `StackEmptyError` if the stack is empty.
+    #[inline]
+    fn stack_pop(&mut self) -> VmResult<Object> {
+        match self.sp {
+            0 => Err(VmError::StackEmptyError),
+            sp => {
+                self.sp -= 1;
+                Ok(self.stack[sp - 1].clone())
+            }
         }
+    }
+
+    /// Returns a reference to the top object on the stack without removing it.
+    /// Returns `None` if the stack is empty.
+    #[inline]
+    fn last_popped_stack_element(&self) -> Option<Object> {
+        // Using direct indexing for O(1) access instead of iter().last() which is O(n)
+        Some(self.stack[self.sp].clone())
     }
 }

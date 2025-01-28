@@ -24,3 +24,18 @@ fn test_vm_constant_op() {
 
     assert_eq!(vm.stack_top(), Some(Object::Int(2)));
 }
+
+#[test]
+fn test_vm_add_op() {
+    let bytecode = test_helper_parse_input("1 + 2");
+    let mut vm = Vm::new(bytecode);
+    vm.run();
+
+    assert_eq!(vm.stack_top(), Some(Object::Int(3)));
+
+    let bytecode = test_helper_parse_input("1 + 2 + 3;");
+    let mut vm = Vm::new(bytecode);
+    vm.run();
+
+    assert_eq!(vm.stack_top(), Some(Object::Int(6)));
+}

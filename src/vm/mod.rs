@@ -1,4 +1,4 @@
-use errors::VmResult;
+use errors::{VmError, VmResult};
 use opcode::OpCode;
 
 use crate::compiler::ByteCode;
@@ -29,15 +29,6 @@ impl Vm {
         }
     }
 
-    fn stack_top(&self) -> Option<Object> {
-        if self.sp == 0 {
-            None
-        } else {
-            let top = self.stack[self.sp - 1].clone();
-            Some(top)
-        }
-    }
-
     fn run(&mut self) -> VmResult<()> {
         let mut ip = 0;
         while ip < self.instructions.len() {
@@ -45,6 +36,7 @@ impl Vm {
 
             match opcode {
                 OpCode::CONSTANT => self.handle_constant_opcode(&mut ip)?,
+                OpCode::ADD => self.handle_add_opcode(&mut ip)?,
                 _ => todo!(),
             }
         }
@@ -52,6 +44,7 @@ impl Vm {
         Ok(())
     }
 
+    ////////////////////////// OpCode Handlers ///////////////////////////
     fn handle_constant_opcode(&mut self, ip: &mut usize) -> VmResult<()> {
         // move to the next instruction, i.e., the operands
         *ip += 1;
@@ -70,6 +63,26 @@ impl Vm {
         Ok(())
     }
 
+    fn handle_add_opcode(&mut self, ip: &mut usize) -> VmResult<()> {
+        // move to the next instruction
+        *ip += 1;
+        // pop off the top two stack elements which are the operands
+        let right = self.stack_pop().ok_or(VmError::StackEmptyError)?;
+        let left = self.stack_pop().ok_or(VmError::StackEmptyError)?;
+
+        
+        let result = match (left, right) {
+            (Object::Int(left_val), Object::Int(right_val)) => Object::Int(left_val + right_val),
+            _ => todo!()
+        };
+
+        // push the result on to the stack
+        self.stack_push(result)?;
+        Ok(())
+    }
+
+
+    /////////////////////// Stack Operations //////////////////////
     fn stack_push(&mut self, obj: Object) -> VmResult<()> {
         // Check for stack overflow before pushing the object
         if self.sp >= STACK_SIZE {
@@ -80,5 +93,23 @@ impl Vm {
         self.sp += 1; // Increment the stack pointer
     
         Ok(())
+    }
+
+    fn stack_pop(&mut self) -> Option<Object> {
+        if let Some(value) = self.stack.pop() {
+            self.sp -= 1;
+            Some(value)
+        } else {
+            None
+        }
+    }
+
+    fn stack_top(&self) -> Option<Object> {
+        if self.sp == 0 {
+            None
+        } else {
+            let top = self.stack[self.sp - 1].clone();
+            Some(top)
+        }
     }
 }

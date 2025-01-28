@@ -50,6 +50,7 @@ impl Compiler {
     fn compile_expr_statement(&mut self, expr: Expression) {
         match expr {
             Expression::IntegerLiteral(token) => self.compile_integer_literal(token),
+            Expression::Infix(expr) => self.compile_infix_expr(expr),
             _ => todo!(),
         }
     }
@@ -61,7 +62,21 @@ impl Compiler {
                 let constant_index = self.add_constant(obj);
                 self.emit(OpCode::CONSTANT, vec![constant_index]);
             }
-            _ => {}
+            _ => {
+                panic!("Expected an integer token, but got: {:?}", token);
+            }
+        }
+    }
+
+    fn compile_infix_expr(&mut self, expr: InfixExpression) {
+        let left = self.compile_expr_statement(*expr.left);
+        let right = self.compile_expr_statement(*expr.right);
+
+        match expr.operator {
+            Token::Plus => {
+                self.emit(OpCode::ADD, vec![]);
+            }
+            _ => todo!(),
         }
     }
 

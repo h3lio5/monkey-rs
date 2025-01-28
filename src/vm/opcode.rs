@@ -10,6 +10,10 @@ pub enum OpCode {
     POP = 0x05,
     TRUE = 0x06,
     FALSE = 0x07,
+    EQUAL = 0x08,
+    NOTEQUAL = 0x09,
+    GREATERTHAN = 0x10,
+    GREATERTHANEQUAL = 0x11,
     INVALID = 0xFF,
 }
 
@@ -24,6 +28,10 @@ impl From<u8> for OpCode {
             0x05 => OpCode::POP,
             0x06 => OpCode::TRUE,
             0x07 => OpCode::FALSE,
+            0x08 => OpCode::EQUAL,
+            0x09 => OpCode::NOTEQUAL,
+            0x10 => OpCode::GREATERTHAN,
+            0x11 => OpCode::GREATERTHANEQUAL,
             _ => OpCode::INVALID,
         }
     }

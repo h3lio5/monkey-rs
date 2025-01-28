@@ -84,23 +84,35 @@ impl Compiler {
     }
 
     fn compile_infix_expr(&mut self, expr: InfixExpression) {
-        let left = self.compile_expr_statement(*expr.left);
-        let right = self.compile_expr_statement(*expr.right);
-
         match expr.operator {
-            Token::Plus => {
-                self.emit(OpCode::ADD, vec![]);
+            // Handle less-than operations by reversing operands and using greater-than opcodes
+            Token::LessThan | Token::LessThanEqual => {
+                self.compile_expr_statement(*expr.right);
+                self.compile_expr_statement(*expr.left);
+                let opcode = match expr.operator {
+                    Token::LessThan => OpCode::GREATERTHAN,
+                    Token::LessThanEqual => OpCode::GREATERTHANEQUAL,
+                    _ => unreachable!(),
+                };
+                self.emit(opcode, vec![]);
             }
-            Token::Minus => {
-                self.emit(OpCode::SUB, vec![]);
+            // Handle all other operations normally
+            op => {
+                self.compile_expr_statement(*expr.left);
+                self.compile_expr_statement(*expr.right);
+                let opcode = match op {
+                    Token::Plus => OpCode::ADD,
+                    Token::Minus => OpCode::SUB,
+                    Token::Asterisk => OpCode::MUL,
+                    Token::Slash => OpCode::DIV,
+                    Token::Equal => OpCode::EQUAL,
+                    Token::NotEqual => OpCode::NOTEQUAL,
+                    Token::GreaterThan => OpCode::GREATERTHAN,
+                    Token::GreaterThanEqual => OpCode::GREATERTHANEQUAL,
+                    _ => todo!("Unsupported operator: {:?}", op),
+                };
+                self.emit(opcode, vec![]);
             }
-            Token::Asterisk => {
-                self.emit(OpCode::MUL, vec![]);
-            }
-            Token::Slash => {
-                self.emit(OpCode::DIV, vec![]);
-            }
-            _ => todo!(),
         }
     }
 

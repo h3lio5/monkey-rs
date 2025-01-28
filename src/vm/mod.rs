@@ -40,10 +40,14 @@ impl Vm {
             match opcode {
                 OpCode::CONSTANT => self.handle_constant_opcode(&mut ip)?,
                 OpCode::ADD | OpCode::SUB | OpCode::MUL | OpCode::DIV => {
-                    self.handle_binary_op(opcode, &mut ip)?
+                    self.handle_binary_opcode(opcode, &mut ip)?
                 }
                 OpCode::POP => self.handle_pop_opcode(&mut ip)?,
                 OpCode::TRUE | OpCode::FALSE => self.handle_bool_opcode(opcode, &mut ip)?,
+                OpCode::EQUAL
+                | OpCode::NOTEQUAL
+                | OpCode::GREATERTHAN
+                | OpCode::GREATERTHANEQUAL => self.handle_comparision_opcode(opcode, &mut ip)?,
                 op => return Err(VmError::OpcodeDecodingError { opcode: op }),
             }
         }
@@ -69,7 +73,7 @@ impl Vm {
         Ok(())
     }
 
-    fn handle_binary_op(&mut self, opcode: OpCode, ip: &mut usize) -> VmResult<()> {
+    fn handle_binary_opcode(&mut self, opcode: OpCode, ip: &mut usize) -> VmResult<()> {
         // move to the next instruction
         *ip += 1;
         // pop off the top two stack elements which are the operands
@@ -85,6 +89,43 @@ impl Vm {
         // push the result on to the stack
         self.stack_push(result)?;
         Ok(())
+    }
+
+    fn handle_comparision_opcode(&mut self, opcode: OpCode, ip: &mut usize) -> VmResult<()> {
+        // move to the next instruction
+        *ip += 1;
+        let right = self.stack_pop()?;
+        let left = self.stack_pop()?;
+
+        let result = match (left, right) {
+            (Object::Int(left_val), Object::Int(right_val)) => {
+                self.execute_integer_comparision_op(opcode, left_val, right_val)?
+            }
+            (Object::Boolean(left_val), Object::Boolean(right_val)) => match opcode {
+                OpCode::EQUAL => Object::Boolean(left_val == right_val),
+                OpCode::NOTEQUAL => Object::Boolean(left_val != right_val),
+                _ => return Err(VmError::UnsupportedBinaryOperation),
+            },
+            _ => return Err(VmError::TypeError),
+        };
+        // push the result on to the stack
+        self.stack_push(result)?;
+        Ok(())
+    }
+
+    fn execute_integer_comparision_op(
+        &mut self,
+        opcode: OpCode,
+        left: i64,
+        right: i64,
+    ) -> VmResult<Object> {
+        match opcode {
+            OpCode::EQUAL => Ok(Object::Boolean(left == right)),
+            OpCode::NOTEQUAL => Ok(Object::Boolean(left != right)),
+            OpCode::GREATERTHAN => Ok(Object::Boolean(left > right)),
+            OpCode::GREATERTHANEQUAL => Ok(Object::Boolean(left >= right)),
+            _ => unreachable!(),
+        }
     }
 
     fn execute_binary_integer_op(

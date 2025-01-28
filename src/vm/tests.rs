@@ -69,3 +69,21 @@ fn test_vm_boolean_op() {
     let (vm, _) = test_helper_parse_input("false;");
     assert_eq!(vm.last_popped_stack_element(), Some(Object::Boolean(false)));
 }
+
+#[test]
+fn test_vm_comparisions() {
+    let (vm, _) = test_helper_parse_input("1 < 2");
+    assert_eq!(vm.last_popped_stack_element(), Some(Object::Boolean(true)));
+
+    let (vm, _) = test_helper_parse_input("1 < 2 == true");
+    assert_eq!(vm.last_popped_stack_element(), Some(Object::Boolean(true))); 
+
+    let (vm, _) = test_helper_parse_input("true != false");
+    assert_eq!(vm.last_popped_stack_element(), Some(Object::Boolean(true)));
+
+    let (vm, vm_run_result) = test_helper_parse_input("true < false");
+    assert_eq!(vm_run_result, Err(VmError::UnsupportedBinaryOperation));
+
+    let (vm, vm_run_result) = test_helper_parse_input("true < 2");
+    assert_eq!(vm_run_result, Err(VmError::TypeError));
+}

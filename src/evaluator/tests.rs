@@ -251,28 +251,19 @@ fn test_evaluator_return_statement() {
     let mut parser = Parser::new(lexer);
     let mut program = parser.parse_program().unwrap();
     let mut evaluator = Evaluator::new();
-    assert_eq!(
-        evaluator.eval_program(program).unwrap(),
-        Object::Int(10)
-    );
+    assert_eq!(evaluator.eval_program(program).unwrap(), Object::Int(10));
 
     lexer = Lexer::new("return 10; 11;");
     parser = Parser::new(lexer);
     program = parser.parse_program().unwrap();
     evaluator = Evaluator::new();
-    assert_eq!(
-        evaluator.eval_program(program).unwrap(),
-        Object::Int(10)
-    );
+    assert_eq!(evaluator.eval_program(program).unwrap(), Object::Int(10));
 
     lexer = Lexer::new("9; return 2 * 5; 11;");
     parser = Parser::new(lexer);
     program = parser.parse_program().unwrap();
     evaluator = Evaluator::new();
-    assert_eq!(
-        evaluator.eval_program(program).unwrap(),
-        Object::Int(10)
-    );
+    assert_eq!(evaluator.eval_program(program).unwrap(), Object::Int(10));
 
     lexer = Lexer::new(
         "let a = 2; 
